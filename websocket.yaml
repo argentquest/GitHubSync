@@ -2,7 +2,7 @@ architecture:
   name: "Real-time Messaging Platform"
   version: "3.0.0"
   type: event-driven
-  description: "Scalable real-time messaging platform with presence detection, chat rooms, file sharing, and push notifications"
+  description: "Scalable real-time messaging platform witssssh presence detection, chat rooms, file sharing, and push notifications"
 
   components:
     - id: websocket-gateway
