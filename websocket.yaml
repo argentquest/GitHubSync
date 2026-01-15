@@ -1,0 +1,318 @@
+architecture:
+  name: "Real-time Messaging Platform"
+  version: "3.0.0"
+  type: event-driven
+  description: "Scalable real-time messaging platform with presence detection, chat rooms, file sharing, and push notifications"
+
+  components:
+    - id: websocket-gateway
+      name: "WebSocket Gateway"
+      type: gateway
+      technology: Node.js
+      version: "18.x"
+      port: 443
+      dependencies: [message-broker, presence-service, session-store]
+      configuration:
+        max_connections: 100000
+        heartbeat_interval: 30
+        message_buffer: 1000
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+
+    - id: message-broker
+      name: "Message Event Broker"
+      type: queue
+      technology: Apache Kafka
+      version: "3.4"
+      port: 9092
+      configuration:
+        partitions: 50
+        replication_factor: 3
+        retention_hours: 168
+      resources:
+        cpu: "6000m"
+        memory: "12Gi"
+        storage: "500Gi"
+
+    - id: message-processor
+      name: "Message Processing Service"
+      type: rest-api
+      technology: Go
+      version: "1.21"
+      port: 8080
+      dependencies: [message-broker, message-db, media-service]
+      configuration:
+        batch_size: 100
+        worker_count: 50
+      resources:
+        cpu: "3000m"
+        memory: "6Gi"
+
+    - id: presence-service
+      name: "User Presence Service"
+      type: rest-api
+      technology: Redis
+      version: "7.0"
+      port: 6379
+      configuration:
+        presence_ttl: 300
+        pub_sub_enabled: true
+      resources:
+        cpu: "2000m"
+        memory: "8Gi"
+
+    - id: session-store
+      name: "Session Management Store"
+      type: cache
+      technology: Redis
+      version: "7.0"
+      port: 6380
+      resources:
+        cpu: "1000m"
+        memory: "4Gi"
+
+    - id: message-db
+      name: "Message History Database"
+      type: database
+      technology: MongoDB
+      version: "6.0"
+      port: 27017
+      configuration:
+        sharding_enabled: true
+        shards: 5
+      resources:
+        cpu: "4000m"
+        memory: "16Gi"
+        storage: "2Ti"
+
+    - id: user-service
+      name: "User Management Service"
+      type: rest-api
+      technology: FastAPI
+      version: "0.100.0"
+      port: 8081
+      dependencies: [user-db, auth-service]
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+
+    - id: user-db
+      name: "User Database"
+      type: database
+      technology: PostgreSQL
+      version: "15.2"
+      port: 5432
+      resources:
+        cpu: "3000m"
+        memory: "8Gi"
+        storage: "500Gi"
+
+    - id: auth-service
+      name: "Authentication Service"
+      type: rest-api
+      technology: Node.js
+      version: "18.x"
+      port: 8082
+      dependencies: [user-db, token-cache]
+      resources:
+        cpu: "1000m"
+        memory: "2Gi"
+
+    - id: token-cache
+      name: "JWT Token Cache"
+      type: cache
+      technology: Redis
+      version: "7.0"
+      port: 6381
+      resources:
+        cpu: "500m"
+        memory: "2Gi"
+
+    - id: media-service
+      name: "Media Upload Service"
+      type: rest-api
+      technology: Go
+      version: "1.21"
+      port: 8083
+      dependencies: [media-storage, thumbnail-queue]
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+
+    - id: media-storage
+      name: "Media File Storage"
+      type: database
+      technology: AWS S3
+      version: "latest"
+      resources:
+        storage: "5Ti"
+
+    - id: thumbnail-queue
+      name: "Thumbnail Generation Queue"
+      type: queue
+      technology: RabbitMQ
+      version: "3.11"
+      port: 5672
+      resources:
+        cpu: "1000m"
+        memory: "2Gi"
+
+    - id: notification-service
+      name: "Push Notification Service"
+      type: rest-api
+      technology: Python
+      version: "3.11"
+      port: 8084
+      dependencies: [message-broker, notification-gateway]
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+
+    - id: notification-gateway
+      name: "FCM/APNS Gateway"
+      type: gateway
+      technology: Firebase Cloud Messaging
+      version: "latest"
+      port: 443
+
+    - id: analytics-service
+      name: "Analytics Processing Service"
+      type: rest-api
+      technology: Apache Flink
+      version: "1.17"
+      port: 8085
+      dependencies: [message-broker, analytics-db]
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+
+    - id: analytics-db
+      name: "Analytics Database"
+      type: database
+      technology: ClickHouse
+      version: "23.3"
+      port: 8123
+      resources:
+        cpu: "3000m"
+        memory: "12Gi"
+        storage: "1Ti"
+
+  communication:
+    - from: websocket-gateway
+      to: message-broker
+      protocol: TCP
+      port: 9092
+      async: true
+      description: "Publish incoming messages to event stream"
+
+    - from: websocket-gateway
+      to: presence-service
+      protocol: TCP
+      port: 6379
+      async: false
+      description: "Update user presence status"
+
+    - from: message-processor
+      to: message-broker
+      protocol: TCP
+      port: 9092
+      async: false
+      description: "Consume messages for processing"
+
+    - from: message-processor
+      to: message-db
+      protocol: TCP
+      port: 27017
+      async: true
+      description: "Store message history"
+
+    - from: message-processor
+      to: media-service
+      protocol: HTTP
+      port: 8083
+      async: true
+      description: "Process media attachments"
+
+    - from: user-service
+      to: user-db
+      protocol: TCP
+      port: 5432
+      async: false
+      description: "User CRUD operations"
+
+    - from: auth-service
+      to: user-db
+      protocol: TCP
+      port: 5432
+      async: false
+      description: "Authentication validation"
+
+    - from: media-service
+      to: media-storage
+      protocol: HTTPS
+      port: 443
+      async: false
+      description: "Upload media files"
+
+    - from: media-service
+      to: thumbnail-queue
+      protocol: AMQP
+      port: 5672
+      async: true
+      description: "Queue thumbnail generation"
+
+    - from: notification-service
+      to: message-broker
+      protocol: TCP
+      port: 9092
+      async: false
+      description: "Subscribe to notification events"
+
+    - from: notification-service
+      to: notification-gateway
+      protocol: HTTPS
+      port: 443
+      async: true
+      description: "Send push notifications"
+
+    - from: analytics-service
+      to: message-broker
+      protocol: TCP
+      port: 9092
+      async: false
+      description: "Stream processing for analytics"
+
+    - from: analytics-service
+      to: analytics-db
+      protocol: TCP
+      port: 8123
+      async: true
+      description: "Store analytics data"
+
+  deployment:
+    strategy: rolling-update
+    replicas: 20
+    platform: Kubernetes
+    resources:
+      cpu: "50000m"
+      memory: "100Gi"
+    health_checks:
+      liveness: "/health/live"
+      readiness: "/health/ready"
+
+  security:
+    authentication: jwt
+    authorization: rbac
+    encryption:
+      in_transit: true
+      at_rest: true
+    secrets_management: "Kubernetes Secrets"
+
+metadata:
+  owner: "messaging-platform-team"
+  created: "2023-09-01T12:00:00Z"
+  updated: "2026-01-13T10:00:00Z"
+  tags: ["production", "real-time", "high-traffic", "event-driven", "scalable"]
+  compliance: ["GDPR", "SOC2", "ISO27001"]
+  documentation_url: "https://docs.company.com/architectures/messaging-platform"
