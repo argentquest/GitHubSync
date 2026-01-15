@@ -1,0 +1,268 @@
+architecture:
+  name: "Digital Banking Platform"
+  version: "4.2.1"
+  type: layered
+  description: "Enterprise-grade banking platform with presentation, business logic, data access, and persistence layers"
+
+  components:
+    - id: web-frontend
+      name: "Web Banking Portal"
+      type: rest-api
+      technology: React
+      version: "18.2"
+      port: 443
+      dependencies: [api-gateway]
+      configuration:
+        cdn_enabled: true
+        session_storage: "encrypted"
+      resources:
+        cpu: "500m"
+        memory: "512Mi"
+
+    - id: mobile-app
+      name: "Mobile Banking App"
+      type: rest-api
+      technology: React Native
+      version: "0.71"
+      dependencies: [api-gateway]
+
+    - id: api-gateway
+      name: "API Gateway Layer"
+      type: gateway
+      technology: Kong
+      version: "3.2"
+      port: 8443
+      dependencies: [account-service, transaction-service, auth-service]
+      configuration:
+        rate_limit: "1000/hour"
+        timeout: 30
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+
+    - id: auth-service
+      name: "Authentication Service"
+      type: rest-api
+      technology: Spring Boot
+      version: "3.0"
+      port: 8080
+      dependencies: [auth-db, mfa-service]
+      resources:
+        cpu: "1000m"
+        memory: "2Gi"
+
+    - id: account-service
+      name: "Account Management Service"
+      type: rest-api
+      technology: Spring Boot
+      version: "3.0"
+      port: 8081
+      dependencies: [account-db, audit-service]
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+
+    - id: transaction-service
+      name: "Transaction Processing Service"
+      type: rest-api
+      technology: Spring Boot
+      version: "3.0"
+      port: 8082
+      dependencies: [transaction-db, audit-service, fraud-detection]
+      resources:
+        cpu: "3000m"
+        memory: "6Gi"
+
+    - id: fraud-detection
+      name: "Fraud Detection Engine"
+      type: rest-api
+      technology: Python
+      version: "3.11"
+      port: 8083
+      dependencies: [ml-model-storage]
+      configuration:
+        model_version: "v2.3"
+        threshold: 0.85
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+
+    - id: mfa-service
+      name: "Multi-Factor Authentication"
+      type: rest-api
+      technology: Node.js
+      version: "18.x"
+      port: 8084
+      dependencies: [auth-db]
+
+    - id: audit-service
+      name: "Audit Logging Service"
+      type: rest-api
+      technology: Go
+      version: "1.21"
+      port: 8085
+      dependencies: [audit-db, log-analytics]
+
+    - id: auth-db
+      name: "Authentication Database"
+      type: database
+      technology: PostgreSQL
+      version: "15.2"
+      port: 5432
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+        storage: "200Gi"
+
+    - id: account-db
+      name: "Account Database"
+      type: database
+      technology: PostgreSQL
+      version: "15.2"
+      port: 5433
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+        storage: "1Ti"
+
+    - id: transaction-db
+      name: "Transaction Database"
+      type: database
+      technology: PostgreSQL
+      version: "15.2"
+      port: 5434
+      resources:
+        cpu: "6000m"
+        memory: "16Gi"
+        storage: "2Ti"
+
+    - id: audit-db
+      name: "Audit Log Database"
+      type: database
+      technology: MongoDB
+      version: "6.0"
+      port: 27017
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+        storage: "500Gi"
+
+    - id: log-analytics
+      name: "Log Analytics Platform"
+      type: database
+      technology: Elasticsearch
+      version: "8.6"
+      port: 9200
+      resources:
+        cpu: "3000m"
+        memory: "12Gi"
+        storage: "1Ti"
+
+    - id: ml-model-storage
+      name: "ML Model Storage"
+      type: database
+      technology: AWS S3
+      version: "latest"
+      resources:
+        storage: "100Gi"
+
+  communication:
+    - from: web-frontend
+      to: api-gateway
+      protocol: HTTPS
+      port: 8443
+      async: false
+      description: "Secure web requests"
+
+    - from: mobile-app
+      to: api-gateway
+      protocol: HTTPS
+      port: 8443
+      async: false
+      description: "Secure mobile requests"
+
+    - from: api-gateway
+      to: auth-service
+      protocol: HTTPS
+      port: 8080
+      async: false
+      description: "Authentication validation"
+
+    - from: api-gateway
+      to: account-service
+      protocol: HTTPS
+      port: 8081
+      async: false
+      description: "Account operations"
+
+    - from: api-gateway
+      to: transaction-service
+      protocol: HTTPS
+      port: 8082
+      async: false
+      description: "Transaction processing"
+
+    - from: transaction-service
+      to: fraud-detection
+      protocol: HTTPS
+      port: 8083
+      async: true
+      description: "Fraud analysis"
+
+    - from: transaction-service
+      to: audit-service
+      protocol: HTTPS
+      port: 8085
+      async: true
+      description: "Transaction audit logs"
+
+    - from: account-service
+      to: account-db
+      protocol: TCP
+      port: 5433
+      async: false
+
+    - from: transaction-service
+      to: transaction-db
+      protocol: TCP
+      port: 5434
+      async: false
+
+    - from: auth-service
+      to: auth-db
+      protocol: TCP
+      port: 5432
+      async: false
+
+    - from: audit-service
+      to: audit-db
+      protocol: TCP
+      port: 27017
+      async: false
+
+  deployment:
+    strategy: blue-green
+    replicas: 10
+    platform: Kubernetes
+    resources:
+      cpu: "40000m"
+      memory: "80Gi"
+    health_checks:
+      liveness: "/actuator/health/liveness"
+      readiness: "/actuator/health/readiness"
+
+  security:
+    authentication: oauth2
+    authorization: rbac
+    encryption:
+      in_transit: true
+      at_rest: true
+    secrets_management: "HashiCorp Vault"
+
+metadata:
+  owner: "banking-platform-team"
+  created: "2022-03-15T08:00:00Z"
+  updated: "2026-01-12T16:45:00Z"
+  tags: ["production", "critical", "financial", "regulated", "high-security"]
+  compliance: ["PCI-DSS", "SOC2", "ISO27001", "GDPR", "PSD2"]
+  documentation_url: "https://docs.company.com/architectures/banking-platform"
