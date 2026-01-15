@@ -1,0 +1,120 @@
+architecture:
+  name: "Enterprise Content Management System"
+  version: "3.5.0"
+  type: monolith
+  description: "Unified content management platform with integrated media handling, user management, and publishing workflows"
+
+  components:
+    - id: cms-application
+      name: "CMS Monolithic Applicationddddd"
+      type: rest-api
+      technology: Django
+      version: "4.2"
+      port: 8000
+      dependencies: [cms-db, media-storage, search-engine, cache]
+      configuration:
+        max_upload_size: "50MB"
+        session_timeout: 3600
+        worker_threads: 16
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+
+    - id: cms-db
+      name: "Content Database"
+      type: database
+      technology: PostgreSQL
+      version: "14.5"
+      port: 5432
+      resources:
+        cpu: "3000m"
+        memory: "8Gi"
+        storage: "500Gi"
+
+    - id: media-storage
+      name: "Media File Storage"
+      type: database
+      technology: MinIO
+      version: "latest"
+      port: 9000
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+        storage: "2Ti"
+
+    - id: search-engine
+      name: "Content Search Engine"
+      type: database
+      technology: Elasticsearch
+      version: "8.6"
+      port: 9200
+      resources:
+        cpu: "2000m"
+        memory: "6Gi"
+        storage: "200Gi"
+
+    - id: cache
+      name: "Application Cache"
+      type: cache
+      technology: Redis
+      version: "7.0"
+      port: 6379
+      resources:
+        cpu: "1000m"
+        memory: "4Gi"
+
+  communication:
+    - from: cms-application
+      to: cms-db
+      protocol: TCP
+      port: 5432
+      async: false
+      description: "Content CRUD operations"
+
+    - from: cms-application
+      to: media-storage
+      protocol: HTTP
+      port: 9000
+      async: false
+      description: "Media upload and retrieval"
+
+    - from: cms-application
+      to: search-engine
+      protocol: HTTP
+      port: 9200
+      async: true
+      description: "Content indexing and search"
+
+    - from: cms-application
+      to: cache
+      protocol: TCP
+      port: 6379
+      async: false
+      description: "Page and query caching"
+
+  deployment:
+    strategy: blue-green
+    replicas: 3
+    platform: Docker Swarm
+    resources:
+      cpu: "12000m"
+      memory: "30Gi"
+    health_checks:
+      liveness: "/api/health"
+      readiness: "/api/ready"
+
+  security:
+    authentication: oauth2
+    authorization: acl
+    encryption:
+      in_transit: true
+      at_rest: true
+    secrets_management: "AWS Secrets Manager"
+
+metadata:
+  owner: "content-team"
+  created: "2023-06-20T09:00:00Z"
+  updated: "2026-01-10T11:15:00Z"
+  tags: ["production", "cms", "media-heavy"]
+  compliance: ["GDPR", "CCPA"]
+  documentation_url: "https://docs.company.com/architectures/cms-platform"
