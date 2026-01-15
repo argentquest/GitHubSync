@@ -9,11 +9,11 @@ architecture:
       name: "CMS Monolithic Applicationddddd"
       type: rest-api
       technology: Django
-      version: "4.2"
+      version: "4.3"
       port: 8000
       dependencies: [cms-db, media-storage, search-engine, cache]
       configuration:
-        max_upload_size: "50MB"
+        max_upload_size: "530MB"
         session_timeout: 3600
         worker_threads: 16
       resources:

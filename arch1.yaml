@@ -8,7 +8,7 @@ architecture:
     - id: cms-application
       name: "CMS Monolithic Applicationddddd"
       type: rest-api
-      technology: Django
+      technology: Django12
       version: "4.2"
       port: 8000
       dependencies: [cms-db, media-storage, search-engine, cache]
