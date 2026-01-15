@@ -6,7 +6,7 @@ architecture:
 
   components:
     - id: websocket-gateway
-      name: "WebSocket Gateway"
+      name: "WebSocket Gateway111"
       type: gateway
       technology: Node.js
       version: "18.x"
@@ -36,7 +36,7 @@ architecture:
         storage: "500Gi"
 
     - id: message-processor
-      name: "Message Processing Service"
+      name: "Message Processing Serviceddsd"
       type: rest-api
       technology: Go
       version: "1.21"
