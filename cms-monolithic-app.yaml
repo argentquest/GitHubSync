@@ -2,7 +2,7 @@ architecture:
   name: "Enterprise Content Management System"
   version: "3.5.0"
   type: monolith
-  description: "Unified content management platform with integrated media handling, user management, and publishing workflows"
+  description: "Unified content management platfcxzvxcorm with integrated media handling, user management, and publishing workflows"
 
   components:
     - id: cms-application
@@ -14,7 +14,7 @@ architecture:
       dependencies: [cms-db, media-storage, search-engine, cache]
       configuration:
         max_upload_size: "50MB"
-        session_timeout: 3600
+        session_timeout: 36030
         worker_threads: 16
       resources:
         cpu: "4000m"
