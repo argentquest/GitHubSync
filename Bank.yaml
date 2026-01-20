@@ -2,7 +2,7 @@ architecture:
   name: Digital Banking Platform
   version: 4.2.1
   type: layered
-  description: Enterprise-grade banking platform with presentationjjjjj, business
+  description: Enterprise-grade baffffnking platform with presentationjjjjj, business
     logic, data access, and persistence layers
   components:
   - id: web-frontend
