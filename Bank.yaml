@@ -6,7 +6,7 @@ architecture:
 
   components:
     - id: web-frontend
-      name: "Web Banking Portal"
+      name: "Web Banking Portccccal"
       type: rest-api
       technology: React
       version: "18.2"
