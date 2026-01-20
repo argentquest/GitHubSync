@@ -1,0 +1,157 @@
+architecture:
+  name: "Image Processing Pipeline"
+  version: "1.3.0"
+  type: serverless
+  description: "Event-drivenddddd image processing system for resizing, optimization, and CDN distribution"
+
+  components:
+    - id: upload-handler
+      name: "Image Upload Handler"
+      type: rest-api
+      technology: AWS Lambda
+      version: "Python 3.14"
+      port: 443
+      dependencies: [raw-storage, processing-queue]
+      configuration:
+        timeout: 30
+        memory: 1024
+        max_concurrent: 1000
+      resources:
+        memory: "1024Mi"
+
+    - id: raw-storage
+      name: "Raw Image Storage"
+      type: database
+      technology: AWS S3
+      version: "latest"
+      resources:
+        storage: "10Ti"
+
+    - id: processing-queue
+      name: "Processing Queue"
+      type: queue
+      technology: AWS SQS
+      version: "latest"
+      configuration:
+        visibility_timeout: 300
+        max_retries: 3
+
+    - id: resize-function
+      name: "Image Resize Function"
+      type: rest-api
+      technology: AWS Lambda
+      version: "Node.js 18"
+      dependencies: [processing-queue, processed-storage]
+      configuration:
+        timeout: 60
+        memory: 2048
+        max_concurrent: 500
+      resources:
+        memory: "2048Mi"
+
+    - id: optimize-function
+      name: "Image Optimization Function"
+      type: rest-api
+      technology: AWS Lambda
+      version: "Python 3.11"
+      dependencies: [processed-storage]
+      configuration:
+        timeout: 45
+        memory: 1536
+      resources:
+        memory: "1536Mi"
+
+    - id: processed-storage
+      name: "Processed Image Storage"
+      type: database
+      technology: AWS S3
+      version: "latest"
+      resources:
+        storage: "10Ti"
+
+    - id: cdn
+      name: "Content Delivery Network"
+      type: gateway
+      technology: AWS CloudFront
+      version: "latest"
+      dependencies: [processed-storage]
+      port: 443
+
+    - id: metadata-db
+      name: "Image Metadata Database"
+      type: database
+      technology: DynamoDB
+      version: "latest"
+      configuration:
+        read_capacity: 100
+        write_capacity: 50
+
+  communication:
+    - from: upload-handler
+      to: raw-storage
+      protocol: HTTPS
+      port: 443
+      async: false
+      description: "Upload original images"
+
+    - from: upload-handler
+      to: processing-queue
+      protocol: HTTPS
+      port: 443
+      async: true
+      description: "Queue processing jobs"
+
+    - from: resize-function
+      to: processing-queue
+      protocol: HTTPS
+      port: 443
+      async: false
+      description: "Pull jobs from queue"
+
+    - from: resize-function
+      to: processed-storage
+      protocol: HTTPS
+      port: 443
+      async: false
+      description: "Store resized images"
+
+    - from: optimize-function
+      to: processed-storage
+      protocol: HTTPS
+      port: 443
+      async: false
+      description: "Store optimized images"
+
+    - from: cdn
+      to: processed-storage
+      protocol: HTTPS
+      port: 443
+      async: false
+      description: "Serve images globally"
+
+  deployment:
+    strategy: canary
+    replicas: 0
+    platform: AWS Lambda
+    resources:
+      cpu: "0"
+      memory: "0"
+    health_checks:
+      liveness: "N/A"
+      readiness: "N/A"
+
+  security:
+    authentication: api-key
+    authorization: rbac
+    encryption:
+      in_transit: true
+      at_rest: true
+    secrets_management: "AWS Secrets Manager"
+
+metadata:
+  owner: "media-team"
+  created: "2024-08-10T14:00:00Z"
+  updated: "2026-01-11T09:30:00Z"
+  tags: ["serverless", "production", "scalable", "cost-optimized"]
+  compliance: ["SOC2"]
+  documentation_url: "https://docs.company.com/architectures/image-processor"
