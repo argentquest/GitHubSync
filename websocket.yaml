@@ -3,7 +3,7 @@ architecture:
   version: 3.0.0
   type: event-driven
   description: Scalable real-time messaging platform with presence detection, chat
-    rooms, file sharing, and push notifications
+    rooms, file sharing, and push notificationsffff
   components:
   - id: websocket-gatyyeway
     name: WebSocket Gateway
