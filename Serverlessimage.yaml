@@ -1,15 +1,15 @@
 architecture:
-  name: "Serverless Image Processing Pipeline"
+  name: "Serverless Image Processing Pipeline wss"
   version: "1.3.0"
   type: serverless
-  description: "Event-driven image processing system for resizing, optimization, and CDN distribution"
+  description: "Event-drivenddddd image processing system for resizing, optimization, and CDN distribution"
 
   components:
     - id: upload-handler
       name: "Image Upload Handler"
       type: rest-api
       technology: AWS Lambda
-      version: "Python 3.11"
+      version: "Python 3.14"
       port: 443
       dependencies: [raw-storage, processing-queue]
       configuration:
