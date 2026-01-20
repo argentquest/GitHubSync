@@ -1,5 +1,5 @@
 architecture:
-  name: "Enterprise Content Management System"
+  name: "Enterprise Content Management System w"
   version: "3.5.0"
   type: monolith
   description: "Unified content management platform with integrated media handling, user management, and publishing workflows"
